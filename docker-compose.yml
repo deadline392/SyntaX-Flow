@@ -1,0 +1,58 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./storage:/var/www/html/storage
+    environment:
+      - DB_HOST=db
+      - DB_NAME=excel_ai
+      - DB_USER=root
+      - DB_PASS=deadline392
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/var/www/html
+      - ./storage:/var/www/html/storage
+    environment:
+      - DB_HOST=db
+      - DB_NAME=excel_ai
+      - DB_USER=root
+      - DB_PASS=deadline392
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    command: php /var/www/html/worker.php
+    deploy:
+      replicas: 5
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: deadline392
+      MYSQL_DATABASE: excel_ai
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pdeadline392"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
+    restart: always
+
+volumes:
+  db_data:
